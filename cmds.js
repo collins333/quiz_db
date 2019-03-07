@@ -54,7 +54,7 @@ exports.listCmd = rl => {
  * @param id Parámetro con el índice a validar
  */
 const validateId = id => {
-  return new Promise((resolve, reject) => {
+  return new Sequelize.Promise((resolve, reject) => {
     if(typeof id === 'undefined') {
       reject(new Error('Falta el parámetro <id>.'))
     }
@@ -226,24 +226,22 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    if(typeof id === 'undefined') {
-        errorlog('Falta el parámetro id.')
-        rl.prompt()
-    }
-    else {
-        try{
-            const quiz = model.getByIndex(id)
-            rl.question(colorize(`${quiz.question}? `, 'red'), respuesta => {
-                console.log('La respuesta es:')
-                respuesta.toLowerCase().trim() === quiz.answer.toLowerCase() ? biglog('Correcta', 'green') : biglog('Incorrecta', 'red')
-                rl.prompt()
-            })
-        }
-        catch(error) {
-            errorlog(error.message)
-            rl.prompt()
-        }
-    }
+  validateId(id)
+    .then(id => models.quiz.findByPk(id))
+    .then(quiz => {
+      if(!quiz) {
+        throw new Error(`No existe un quiz asociado al id=${id}.`)
+      }
+      return makeQuestion(rl, `${quiz.question}? `)
+        .then(a => {
+          log('La respuesta es:')
+          a.toLowerCase().trim() === quiz.answer.toLowerCase() ? biglog('Correcta', 'green') : biglog('Incorrecta', 'red')
+        })
+    })
+    .catch(error => {
+        errorlog(error.message)
+      })
+    .then(() => rl.prompt())
 };
 
 
