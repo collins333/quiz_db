@@ -34,7 +34,6 @@ exports.helpCmd = rl => {
 exports.listCmd = rl => {
     models.quiz.findAll()
       .each(quiz => {
-        // console.log(quiz)
         log(`  [${colorize(quiz.id, 'magenta')}]: ${quiz.question}`)
       })
       .catch(error => {
@@ -254,44 +253,44 @@ exports.testCmd = (rl, id) => {
 exports.playCmd = rl => {
   let aciertos = 0
   let respContestar = []
-  for(let i in model.getAll()) {
-    respContestar.push(model.getAll()[i])
-  }
-  
-  const playOne = () => {
-    if(respContestar.length === 0) {
-      log('No hay nada más que preguntar.')
-      log(`Fin del examen. Aciertos: ${aciertos}`)
-      biglog(`${aciertos}`, 'magenta')
-      rl.prompt()
-    }
-    else {
-      try{
-        let id = Math.floor(Math.random()*respContestar.length)
-        const quiz = respContestar[id]
-        
-        respContestar.splice(id, 1)
-        
-        rl.question(colorize(`${quiz.question}? `, 'red'), respuesta => {
-            if(respuesta.toLowerCase().trim() === quiz.answer.toLowerCase()) {
+  models.quiz.findAll()
+    .then(quizzes => {
+      quizzes.forEach(quiz => {
+        respContestar.push(quiz.dataValues)
+      })
+    })
+    .then(() => {
+      // const playOne = () => {
+        if(respContestar.length === 0) {
+          log('No hay más preguntas.')
+          log(`Fin del examen. Aciertos: ${aciertos}`)
+          biglog(`${aciertos}`, 'magenta')
+          .then(() => rl.prompt())
+        }
+        else {
+          let id = Math.floor(Math.random()*respContestar.length)
+          const quiz = respContestar[id]
+          respContestar.splice(id, 1)
+          return makeQuestion(rl, `${quiz.question}? `)
+            .then(a => {
+              if(a.toLowerCase().trim() === quiz.answer.toLowerCase()) {
                 aciertos++
                 log(`CORRECTO - Lleva ${aciertos} aciertos.`)
-                playOne()
-            }
-            else {
+                // playOne()
+              } 
+              else {
                 log(`INCORRECTO.\nFin del examen. Aciertos: ${aciertos}`)
                 biglog(`${aciertos}`, 'magenta')
-            }
-            rl.prompt()
-        })
-      }
-      catch(error) {
-        errorlog(error.message)
-        rl.prompt()
-      }
-    }
- }
-  playOne()
+                .then(() => rl.prompt())
+              } 
+            })
+        }
+      // }
+    })
+    .catch(error => {
+      errorlog(error.message)
+    })
+    // .then(() => playOne())
 };
 
 
