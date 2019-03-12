@@ -253,49 +253,57 @@ exports.testCmd = (rl, id) => {
 exports.playCmd = rl => {
   models.quiz.findAll()
   .then(quizzes => {
+    let respContestar = []
+    quizzes.forEach(quiz => {
+      respContestar.push(quiz.id)
+    })
+    return respContestar
+  })
+  .then(respContestar => {
     let aciertos = 0
     const playOne = () => {
-      let numero = Math.floor(Math.random()*quizzes.length)
-      validateId(numero)
-      .then(id => models.quiz.findByPk(id)
+      if(respContestar.length === 0) {
+        log('No hay más preguntas.')
+        log(`Fin del examen. Aciertos: ${aciertos}`)
+        biglog(`${aciertos}`, 'magenta')
+        rl.prompt()
+      }
+      else {
+        let id = respContestar[Math.floor( Math.random() * respContestar.length)]
+        respContestar.splice(respContestar.indexOf(id), 1)
+        models.quiz.findByPk(id)
         .then(quiz => {
-          return makeQuestion(rl, `${quizzes[numero].question}? `)
+          return makeQuestion(rl, `${quiz.question}? `)
           .then(a => {
-            if(a.toLowerCase().trim() === (quizzes[numero].answer.toLowerCase())) {
+            if(a.toLowerCase().trim() === (quiz.answer.toLowerCase())) {
               aciertos++
               log(`CORRECTO - Lleva ${aciertos} aciertos.`)
-              quizzes.splice(numero, 1)
-              models.quiz.findAll()
-              .then(totales => {
-                if(aciertos === totales.length){
-                  log('No hay más preguntas.')
-                  log(`Fin del examen. Aciertos: ${aciertos}`)
-                  biglog(`${aciertos}`, 'magenta')
-                  rl.prompt()
-                }
-                else {
-                  if(quizzes.length > 0) playOne()
-                }
-              })
+              playOne()
             }
             else {
               log(`INCORRECTO.\nFin del examen. Aciertos: ${aciertos}`)
               biglog(`${aciertos}`, 'magenta')
-              rl.prompt()
             }
           })
         })
-      )
-      .catch(error => {
-        errorlog(error.message)
-      })
-      .then(() => {
-        rl.prompt()
-      })
+        .catch(error => {
+          errorlog(error.message)
+        })
+        .then(() => {
+          rl.prompt()
+        })
+      }
     }
     playOne()
   })
-};
+  .catch(error => {
+    errorlog(error.message)
+  })
+  .then(() => {
+    rl.prompt()
+  })
+}
+
 
 
 /**
